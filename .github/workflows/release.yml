@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  release:
+    types:
+      - prereleased
+
+jobs:
+  binary-build:
+    name: Build Binary
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ["macos-latest", "windows-latest", "windows-11-arm"]
+        include:
+          - os: ubuntu-latest
+            libc: gnu
+
+          - os: ubuntu-24.04-arm
+            libc: gnu
+
+          - os: ubuntu-latest
+            libc: musl
+
+          - os: ubuntu-24.04-arm
+            libc: musl
+    runs-on: ${{ matrix.os }}
+    env:
+      XONSH_SHOW_TRACEBACK: true
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v6
+
+      - name: Set Up uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Set Up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      
+      - name: Get Build Target
+        id: target
+        shell: uvx xonsh {0}
+        run: |
+          target = $(rustc -vV | grep host).split()[-1].replace("gnu", "${{ matrix.libc }}")
+          echo target=@(target) >> $GITHUB_OUTPUT
+
+      - name: Add ${{ steps.target.outputs.target }} Target
+        run: rustup target add ${{ steps.target.outputs.target }}
+
+      - name: Install musl-tools
+        if: matrix.libc == 'musl'
+        run: sudo apt-get install musl-tools -y
+
+      - name: Build Binary
+        run: uv run poe build-binary
+        env:
+          CARGO_BUILD_TARGET: ${{ steps.target.outputs.target }}
+      
+      # - name: Build Binary (Windows)
+      #   shell: wsl-bash {0}
+      #   run: uv run poe build-binary
+      #   env:
+      #     CARGO_BUILD_TARGET: ${{ steps.target.outputs.target }}
+
+      - name: Create Artifact
+        id: artifact
+        shell: uvx xonsh {0}
+        run: |
+          import shutil
+          import sys
+          
+          distribution = "celty-${{ github.ref_name }}-${{ steps.target.outputs.target }}"
+          format = "zip" if sys.platform == "win32" else "gztar"
+          artifact = shutil.make_archive(distribution, format=format, root_dir="dist/binary")
+          
+          echo path=@(artifact) >> $GITHUB_OUTPUT
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: artifact-${{ steps.target.outputs.target }}
+          path: ${{ steps.artifact.outputs.path }}
+          if-no-files-found: error
+
+  binary-publish:
+    name: Upload Binaries
+    needs: binary-build
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: artifact-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate Attestations
+        if: github.event.repository.private == false
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/*
+
+      - name: Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+  
+  pypi-build:
+    name: Build Python Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@v6
+
+      - name: Set Up uv
+        uses: astral-sh/setup-uv@v8.2.0
+      
+      - name: Build Package
+        run: uv build
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: pypi
+          path: dist
+  
+  pypi-publish:
+    name: Publish to PyPI
+    needs: pypi-build
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: pypi
+          path: dist
+  
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  finalize-release:
+    name: Finalize Release
+    needs: [binary-publish, pypi-publish]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark Release as Latest
+        run: gh release edit ${{ github.ref_name }} --prerelease=false --latest
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}

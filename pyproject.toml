@@ -1,0 +1,76 @@
+[project]
+name = "celty"
+authors = [
+    { name = "celsius narhwal", email = "hello@celsiusnarhwal.dev" }
+]
+license-files = ["LICENSE.md"]
+requires-python = ">=3.14"
+dependencies = [
+    "dulwich>=1.2.6",
+    "durationpy>=0.10",
+    "httpx2>=2.3.0",
+    "loguru>=0.7.3",
+    "merge-args>=0.1.5",
+    "platformdirs>=4.10.0",
+    "pydantic>=2.13.4",
+    "pyyaml>=6.0.3",
+    "typer>=0.26.4",
+]
+dynamic = ["version", "readme"]
+
+[project.urls]
+Repository = "https://github.com/celsiusnarhwal/celty"
+Issues = "https://github.com/celsiusnarhwal/celty/issues"
+Changelog = "https://github.com/celsiusnarhwal/celty/blob/main/CHANGELOG.md"
+
+[project.scripts]
+celty = "celty.cli:entrypoint"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.binary]
+python-version = "3.14"
+pyapp-version = "0.29.0"
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+end-before = "<!-- pre-installation -->\n\n"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+start-after = "<!-- post-installation -->\n\n"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '!\[(.+?)\]\(((?!https?://)\S+?)\)'
+replacement = '[\1](https://raw.githubusercontent.com/celsiusnarhwal/celty/refs/heads/main/\g<2>)'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\[(.+?)\]\(((?!https?://)\S+?)\)'
+replacement = '[\1](https://github.com/celsiusnarhwal/celty/tree/main\g<2>)'
+
+[tool.poe.tasks.build-binary]
+shell = """
+[[ -n "${GITHUB_ACTIONS}" ]] || export SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+$(uuidgen)
+rm -rf dist
+uv build --wheel
+export PYAPP_PROJECT_PATH=$(realpath dist/*.whl)
+uvx hatch build -t binary
+mv dist/binary/celty-* dist/binary/celty
+"""
+env = { PYAPP_UV_ENABLED = "true", RUSTFLAGS = "-C target-feature=+crt-static" }
+interpreter = "bash"
+
+[build-system]
+requires = ["hatch", "hatch-vcs", "hatch-fancy-pypi-readme"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+build = []
+dev = [
+    "poethepoet>=0.46.0",
+    "pyperclip>=1.11.0",
+]

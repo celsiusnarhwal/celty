@@ -1,0 +1,17 @@
+# Celty — https://github.com/celsiusnarhwal/celty
+
+apps:
+    # The name by which the app should be identified. Must be unique.
+  - name: example-app
+
+    # The app's client ID.
+    client_id: abcdef  # The app's client ID.
+
+    # If Celty is invoked as a Git credential helper and this field matches the repository owner, this app will be used by default. Must be unique.
+    repo_owner:  mona
+
+    # If this app should use a GitHub host other than github.com, set this accordingly.
+    github_url: https://github.com
+
+    # If True, Celty will automatically use this app when it doesn't have a reason to use a different one.
+    default: false
