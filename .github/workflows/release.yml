@@ -55,12 +55,6 @@ jobs:
         run: uv run poe build-binary
         env:
           CARGO_BUILD_TARGET: ${{ steps.target.outputs.target }}
-      
-      # - name: Build Binary (Windows)
-      #   shell: wsl-bash {0}
-      #   run: uv run poe build-binary
-      #   env:
-      #     CARGO_BUILD_TARGET: ${{ steps.target.outputs.target }}
 
       - name: Create Artifact
         id: artifact
@@ -122,7 +116,7 @@ jobs:
       
       - name: Build Package
         run: uv build
-      
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
