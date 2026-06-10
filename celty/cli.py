@@ -336,7 +336,7 @@ def helper(
     **kwargs,
 ):
     """
-    Configure Celty as a Git credential helper. All options other than --global will be passed
+    Configure Celty as a Git credential helper. All options other than --global and --verbose will be passed
     to [bold cyan]celty get[/] when it is invoked by Git.
     """
     utils.set_verbosity(kwargs["verbose"])
@@ -449,7 +449,7 @@ def main(
     Celty generates short-lived GitHub access tokens from the command line. https://github.com/celsiusnarhwal/celty
     """
     utils.set_verbosity(verbose)
-    
+
     if version:
         distribution = CeltyDistribution()
         print(distribution.long_info() if verbose else distribution.info())
