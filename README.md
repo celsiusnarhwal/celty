@@ -126,7 +126,7 @@ This can be overridden with the `--config-file` option.
 
 If [Keyring](https://github.com/jaraco/keyring) is installed, Celty will store tokens in and retrieve them from Keyring's configured backend. This allows you to run `celty get` once and not have to go through the authentication flow again until the generated token expires. For most users, no configuration should be required beyond installing Keyring and making sure its available on your system path, but Linux users should double-check Keyring's documentation just to be sure.
 
-You can expicilty tell Celty where Keyring's binary is with either `celty get --keyring-path`. If you don't want to use credential storage even if Keyring is installed, use `celty get --no-store`.
+You can expicilty tell Celty where Keyring's binary is with `celty get --keyring-path`. If you don't want to use credential storage even if Keyring is installed, use `celty get --no-store`.
 
 #### Minimum validity
 
